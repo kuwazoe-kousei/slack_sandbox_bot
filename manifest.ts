@@ -7,9 +7,8 @@ import GreetingWorkflow from "./workflows/greeting_workflow.ts";
  * https://api.slack.com/future/manifest
  */
 export default Manifest({
-  name: "slack_sandbox_bot",
-  description:
-    "A sample that demonstrates using a function, workflow and trigger to send a greeting",
+  name: "slack_sandbox_bot", //そのまま
+  description: "サンドボックスを健気に管理してくれる可愛い子です。", //修正した！
   icon: "assets/default_new_app_icon.png",
   workflows: [GreetingWorkflow],
   outgoingDomains: [],
