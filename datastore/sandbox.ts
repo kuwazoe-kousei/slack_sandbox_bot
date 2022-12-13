@@ -1,12 +1,13 @@
 import { DefineDatastore, Schema } from "deno-slack-sdk/mod.ts";
 
+//{{status}}
+//1→空き
+//2→確保済み
+//3→使用不可
 const SandboxDatastore = DefineDatastore({
   name: "sandbox",
-  primary_key: "id",
+  primary_key: "name",
   attributes: {
-    id: {
-      type: Schema.types.string,
-    },
     name: {
       type: Schema.types.string,
     },
@@ -18,6 +19,9 @@ const SandboxDatastore = DefineDatastore({
     },
     description: {
       type: Schema.types.string,
+    },
+    due_date: {
+      type: Schema.slack.types.date,
     },
     status: {
       type: Schema.types.number,
