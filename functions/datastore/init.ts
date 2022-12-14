@@ -1,9 +1,4 @@
-import {
-  DefineFunction,
-  Schema,
-  SlackAPI,
-  SlackFunction,
-} from "deno-slack-sdk/mod.ts";
+import { DefineFunction, Schema, SlackFunction } from "deno-slack-sdk/mod.ts";
 import SandboxDatastore from "../../datastore/sandbox.ts";
 
 /**
@@ -41,18 +36,14 @@ export const InitDatastoreFunctionDefinition = DefineFunction({
         type: Schema.types.string,
         description: "スレに返答する内容",
       },
-      text_for_topic: {
-        type: Schema.types.string,
-        description: "トピック用文章",
-      },
     },
-    required: ["completed", "message", "text_for_topic"],
+    required: ["completed", "message"],
   },
 });
 
 export default SlackFunction(
   InitDatastoreFunctionDefinition,
-  async ({ token, inputs }) => {
+  async ({ inputs, client }) => {
     const sandboxName = [
       "sb01",
       "sb02",
@@ -87,13 +78,11 @@ export default SlackFunction(
       "sb31",
       "sb32",
     ];
-    const client = SlackAPI(token, {});
     const user = await client.users.info({
       user: inputs.user_id,
     });
 
-    let text_for_topic = "空いているSB\n";
-    let index = 0;
+    let index = 1;
     let completed = true;
     let message = "正常に初期化されました！";
     const date = new Date();
@@ -108,6 +97,7 @@ export default SlackFunction(
       >({
         datastore: "sandbox",
         item: {
+          id: index,
           name: element,
           user_id: inputs.user_id,
           user_name: user.user.profile.display_name,
@@ -120,18 +110,17 @@ export default SlackFunction(
         },
       });
 
-      index++;
       if (!putResponse.ok) {
         completed = false;
         message = "エラーが発生しました...";
         console.log(`${index} : error`);
         break;
       } else {
-        text_for_topic += `${putResponse.item.name}\n`;
         console.log(`${index} : ok`);
+        index++;
       }
     }
 
-    return { outputs: { completed, message, text_for_topic } };
+    return { outputs: { completed, message } };
   },
 );

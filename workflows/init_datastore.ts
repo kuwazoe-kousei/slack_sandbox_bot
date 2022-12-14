@@ -1,5 +1,7 @@
 import { DefineWorkflow, Schema } from "deno-slack-sdk/mod.ts";
 import { InitDatastoreFunctionDefinition } from "../functions/datastore/init.ts";
+import { LoadSandboxFunctionDefinition } from "../functions/datastore/sandbox/load.ts";
+import { UpdateTopicSandboxFunctionDefinition } from "../functions/sandbox/update_topic.ts";
 
 /**
  * A Workflow is a set of steps that are executed in order.
@@ -66,15 +68,25 @@ const Init = InitDatastoreWorkflow.addStep(InitDatastoreFunctionDefinition, {
   description: approve.outputs.fields.description,
 });
 
+const LoadOpeningSandbox = InitDatastoreWorkflow.addStep(
+  LoadSandboxFunctionDefinition,
+  {
+    status: 1,
+  },
+);
+
+InitDatastoreWorkflow.addStep(
+  UpdateTopicSandboxFunctionDefinition,
+  {
+    items: LoadOpeningSandbox.outputs.results,
+    channel: InitDatastoreWorkflow.inputs.channel,
+  },
+);
+
 InitDatastoreWorkflow.addStep(Schema.slack.functions.SendMessage, {
   channel_id: InitDatastoreWorkflow.inputs.channel,
   message: Init.outputs.message,
   thread_ts: RunMessage.outputs.message_ts,
-});
-
-InitDatastoreWorkflow.addStep(Schema.slack.functions.UpdateChannelTopic, {
-  channel_id: InitDatastoreWorkflow.inputs.channel,
-  topic: Init.outputs.text_for_topic,
 });
 
 export default InitDatastoreWorkflow;
