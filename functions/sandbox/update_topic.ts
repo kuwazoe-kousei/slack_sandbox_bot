@@ -37,11 +37,12 @@ export const UpdateTopicSandboxFunctionDefinition = DefineFunction({
 export default SlackFunction(
   UpdateTopicSandboxFunctionDefinition,
   async ({ inputs, client }) => {
-    let topic_message = `空いているSB:${inputs.items.length}個\n`;
-    const message = inputs.items.sort((a, b) => a.id - b.id);
-    message.map((item) => {
-      topic_message += `${item.name}\n`;
-    });
+    const topic_message = `空いているSB:${inputs.items.length}個\n`;
+    // let topic_message = `空いているSB:${inputs.items.length}個\n`;
+    // const message = inputs.items.sort((a, b) => a.id - b.id);
+    // message.map((item) => {
+    //   topic_message += `${item.name}\n`;
+    // });
     const setTopic = await client.conversations.setTopic({
       channel: inputs.channel,
       topic: topic_message,
