@@ -81,6 +81,7 @@ export default SlackFunction(
     >({
       datastore: "sandbox",
       item: {
+        id: target_item.id,
         name: target_item.name,
         user_id: inputs.user_id,
         user_name: user.user.profile.display_name,
