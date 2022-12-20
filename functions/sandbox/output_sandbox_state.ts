@@ -33,10 +33,25 @@ export default SlackFunction(
   OutputSandboxStateFunctionDefinition,
   ({ inputs }) => {
     let topic_message = `空いているSB:${inputs.items.length}個\n`;
+    topic_message += `SB名/空き状況/確保者/用途/使用期限\n`;
     const message = inputs.items.sort((a, b) => a.id - b.id);
     message.map((item) => {
+      topic_message += `${item.name}/`;
+      switch (item.status) {
+        case 1:
+          topic_message += `空き`;
+          break;
+        case 2:
+          topic_message += `確保済み`;
+          break;
+        case 3:
+          topic_message += `使用不可`;
+          break;
+        default:
+          break;
+      }
       topic_message +=
-        `${item.name}/${item.due_date}/${item.user_name}/${item.description}\n`;
+        `/${item.user_name}/${item.description}/${item.due_date}\n`;
     });
 
     return { outputs: { message: topic_message } };

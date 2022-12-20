@@ -78,18 +78,10 @@ export default SlackFunction(
       "sb31",
       "sb32",
     ];
-    const user = await client.users.info({
-      user: inputs.user_id,
-    });
-
     let index = 1;
     let completed = true;
     let message = "正常に初期化されました！";
-    const date = new Date();
-    const formatted_date = date.getFullYear() + "-" +
-      (date.getMonth() + 1).toString().padStart(2, "0") +
-      "-" +
-      date.getDate().toString().padStart(2, "0");
+    const date = "2099-01-01";
 
     for (const element of sandboxName) {
       const putResponse = await client.apps.datastore.put<
@@ -99,10 +91,10 @@ export default SlackFunction(
         item: {
           id: index,
           name: element,
-          user_id: inputs.user_id,
-          user_name: user.user.profile.display_name,
+          user_id: "",
+          user_name: "",
           description: inputs.description,
-          due_date: formatted_date,
+          due_date: date,
           status: 1,
           server_branch: "",
           client_branch: "",

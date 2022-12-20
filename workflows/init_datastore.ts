@@ -12,7 +12,7 @@ import { UnpinMessageFunctionDefinition } from "../functions/unpin_message.ts";
  * Each step in a Workflow is a function.
  * https://api.slack.com/future/workflows
  */
-const InitDatastoreWorkflow = DefineWorkflow({
+const initDatastoreWorkflow = DefineWorkflow({
   callback_id: "init_datastore_workflow",
   title: "サンドボックスを初期化する",
   description: "サンドボックス確保状態を初期化します。一部のユーザーしか使用できません。",
@@ -38,11 +38,11 @@ const InitDatastoreWorkflow = DefineWorkflow({
 const idForPinnedMessage = "pinned_message from init_datastore_workflow";
 
 // 1:フォームオープン
-const approve = InitDatastoreWorkflow.addStep(
+const approve = initDatastoreWorkflow.addStep(
   Schema.slack.functions.OpenForm,
   {
     title: "初期化確認画面",
-    interactivity: InitDatastoreWorkflow.inputs.interactivity,
+    interactivity: initDatastoreWorkflow.inputs.interactivity,
     submit_label: "初期化する",
     description: "初期化を行う場合は、理由を記入してボタンを押下してください。",
     fields: {
@@ -57,23 +57,23 @@ const approve = InitDatastoreWorkflow.addStep(
 );
 
 // 2:初期メッセージ送信
-const sendRunMessage = InitDatastoreWorkflow.addStep(
+const sendRunMessage = initDatastoreWorkflow.addStep(
   Schema.slack.functions.SendMessage,
   {
-    channel_id: InitDatastoreWorkflow.inputs.channel,
-    message: `<@${InitDatastoreWorkflow.inputs.user_id}> \n承りました。初期化を開始します...`,
+    channel_id: initDatastoreWorkflow.inputs.channel,
+    message: `<@${initDatastoreWorkflow.inputs.user_id}> \n承りました。初期化を開始します...`,
   },
 );
 
 // 3:Datastore初期化
-const Init = InitDatastoreWorkflow.addStep(InitDatastoreFunctionDefinition, {
-  user_id: InitDatastoreWorkflow.inputs.user_id,
-  timestamp: InitDatastoreWorkflow.inputs.timestamp,
+const init = initDatastoreWorkflow.addStep(InitDatastoreFunctionDefinition, {
+  user_id: initDatastoreWorkflow.inputs.user_id,
+  timestamp: initDatastoreWorkflow.inputs.timestamp,
   description: approve.outputs.fields.description,
 });
 
 // 4:オープンしているサンドボックスを全て取得
-const loadOpeningSandbox = InitDatastoreWorkflow.addStep(
+const loadOpeningSandbox = initDatastoreWorkflow.addStep(
   LoadSandboxFunctionDefinition,
   {
     status: 1,
@@ -81,82 +81,84 @@ const loadOpeningSandbox = InitDatastoreWorkflow.addStep(
 );
 
 // 5:トピックを更新
-InitDatastoreWorkflow.addStep(
+initDatastoreWorkflow.addStep(
   UpdateTopicSandboxFunctionDefinition,
   {
     items: loadOpeningSandbox.outputs.results,
-    channel: InitDatastoreWorkflow.inputs.channel,
+    channel: initDatastoreWorkflow.inputs.channel,
   },
 );
 
-// 6:完了のメッセージを1のスレッドとして送信
-InitDatastoreWorkflow.addStep(Schema.slack.functions.SendMessage, {
-  channel_id: InitDatastoreWorkflow.inputs.channel,
-  message: Init.outputs.message,
-  thread_ts: sendRunMessage.outputs.message_ts,
-});
-
-// 7:ピン状態の既存メッセージを取得
-const findPinnedMessage = InitDatastoreWorkflow.addStep(
+// 6:(過去に初期化されていた場合)状態メッセージを取得
+const findPinnedMessage = initDatastoreWorkflow.addStep(
   FindPinnedMessageFunctionDefinition,
   {
     id: idForPinnedMessage,
   },
 );
 
-// 8:7で取得できたら取得したアイテムをUnPin
+// 7:6で取得できたら取得したアイテムをUnPin
 if (findPinnedMessage.outputs.item) {
-  InitDatastoreWorkflow.addStep(
+  initDatastoreWorkflow.addStep(
     UnpinMessageFunctionDefinition,
     {
-      channel: InitDatastoreWorkflow.inputs.channel,
+      channel: initDatastoreWorkflow.inputs.channel,
       message_ts: findPinnedMessage.outputs.item.message_ts,
     },
   );
 }
 
-// 9:状態メッセージを送信
-const sendCompletedMessage = InitDatastoreWorkflow.addStep(
+// 8:親となるメッセージを送信
+const sendCompletedMessage = initDatastoreWorkflow.addStep(
   Schema.slack.functions.SendMessage,
   {
-    channel_id: InitDatastoreWorkflow.inputs.channel,
+    channel_id: initDatastoreWorkflow.inputs.channel,
     message: "各サンドボックス状況↓",
   },
 );
 
-const stateMessage = InitDatastoreWorkflow.addStep(
+// 9:取得したitemsから状態メッセージを生成
+const stateMessage = initDatastoreWorkflow.addStep(
   OutputSandboxStateFunctionDefinition,
   {
     items: loadOpeningSandbox.outputs.results,
   },
 );
 
-const sendStateMessage = InitDatastoreWorkflow.addStep(
+// 10:生成した状態メッセージをスレッドとして送信
+const sendStateMessage = initDatastoreWorkflow.addStep(
   Schema.slack.functions.SendMessage,
   {
-    channel_id: InitDatastoreWorkflow.inputs.channel,
+    channel_id: initDatastoreWorkflow.inputs.channel,
     message: stateMessage.outputs.message,
     thread_ts: sendCompletedMessage.outputs.message_ts,
   },
 );
 
-// 10:状態メッセージを次UnPinするためにDatastoreにSave
-InitDatastoreWorkflow.addStep(
+// 11:状態メッセージを次UnPinするためにDatastoreにSave
+initDatastoreWorkflow.addStep(
   SavePinnedMessageFunctionDefinition,
   {
     id: idForPinnedMessage,
-    channel: InitDatastoreWorkflow.inputs.channel,
+    channel: initDatastoreWorkflow.inputs.channel,
     message_ts: sendStateMessage.outputs.message_ts,
   },
 );
 
-// 11:状態メッセージをPin留め
-InitDatastoreWorkflow.addStep(
+// 12:状態メッセージをPin留め
+initDatastoreWorkflow.addStep(
   Schema.slack.functions.AddPin,
   {
-    channel_id: InitDatastoreWorkflow.inputs.channel,
+    channel_id: initDatastoreWorkflow.inputs.channel,
     message: sendStateMessage.outputs.message_ts,
   },
 );
 
-export default InitDatastoreWorkflow;
+// 13:完了のメッセージを2のスレッドとして送信
+initDatastoreWorkflow.addStep(Schema.slack.functions.SendMessage, {
+  channel_id: initDatastoreWorkflow.inputs.channel,
+  message: init.outputs.message,
+  thread_ts: sendRunMessage.outputs.message_ts,
+});
+
+export default initDatastoreWorkflow;
